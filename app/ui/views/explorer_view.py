@@ -5,7 +5,12 @@ import subprocess
 
 import flet as ft
 
-from app.services.autentique_service import assinar_docx_autentique, status_assinatura_arquivo
+from app.services.autentique_service import (
+    assinar_pdf_autentique,
+    atualizar_status_assinaturas_autentique,
+    status_assinatura_arquivo,
+    tag_assinatura_arquivo,
+)
 from app.ui import theme
 from app.ui.components.cards import criar_item_arquivo, criar_item_pasta, criar_item_voltar
 
@@ -20,6 +25,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
     subtitulo.value = "Contratos organizados por data"
     nivel = nivel_atual["nivel"]
     termo_pesquisa = nivel_atual.get("pesquisa", "")
+    filtro_tag = nivel_atual.get("filtro_tag", "todos")
 
     lista = ft.ListView(expand=True, spacing=6, auto_scroll=False)
 
@@ -43,7 +49,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                     importados += 1
                 except Exception as ex:
                     salvar_log("Erro ao importar", str(ex), status="falha", erro=str(ex))
-            mostrar_snack(f"✓ {importados} arquivo(s) importado(s) para hoje", "#2e7d32")
+            mostrar_snack(f"✓ {importados} arquivo(s) importado(s) para hoje", theme.GREEN)
             nivel_atual.update({"nivel":"dia",
                                 "ano": hoje.year,
                                 "mes": hoje.month,
@@ -60,10 +66,26 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
             abrir_arquivo_sistema(caminho)
             salvar_log("Arquivo aberto", caminho, status="sucesso")
         except Exception as ex:
-            mostrar_snack(f"❌ Não foi possível abrir: {ex}", "#c62828")
+            mostrar_snack(f"❌ Não foi possível abrir: {ex}", theme.RED)
 
     def atualizar_explorador(e=None):
-        renderizar_explorador_callback()
+        btn_atualizar.disabled = True
+        mostrar_snack("Atualizando contratos e assinaturas...", theme.BLUE)
+        page.update()
+
+        def executar():
+            resultado = atualizar_status_assinaturas_autentique()
+            salvar_log(
+                "Explorador atualizado",
+                resultado["message"],
+                status="sucesso" if resultado["success"] else "falha",
+                erro="" if resultado["success"] else str(resultado.get("falhas") or ""),
+            )
+            mostrar_snack(resultado["message"], theme.GREEN if resultado["success"] else theme.RED)
+            btn_atualizar.disabled = False
+            renderizar_explorador_callback()
+
+        page.run_thread(executar)
 
     def pesquisar_contratos(e):
         nivel_atual["pesquisa"] = campo_pesquisa.value.strip()
@@ -72,6 +94,15 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
     def limpar_pesquisa(e):
         nivel_atual["pesquisa"] = ""
         renderizar_explorador_callback()
+
+    def aplicar_filtro_tag(tag):
+        nivel_atual["filtro_tag"] = tag
+        renderizar_explorador_callback()
+
+    def arquivo_passa_filtro_tag(caminho):
+        if filtro_tag == "todos":
+            return True
+        return tag_assinatura_arquivo(caminho) == filtro_tag
 
     def fechar_dialogo(dialogo):
         if hasattr(page, "pop_dialog"):
@@ -85,7 +116,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
             modal=True,
             bgcolor=theme.BG_PANEL,
             shape=ft.RoundedRectangleBorder(radius=16),
-            title=ft.Text("Remover documento", color="white", size=16, weight=ft.FontWeight.W_500),
+            title=ft.Text("Remover documento", color=theme.TEXT_MAIN, size=16, weight=ft.FontWeight.W_500),
             content=ft.Text(
                 f"Deseja realmente excluir {os.path.basename(caminho)}?",
                 color=theme.TEXT_MUTED,
@@ -100,8 +131,8 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                 ft.ElevatedButton(
                     "Excluir",
                     style=ft.ButtonStyle(
-                        bgcolor={"": "#7f1d1d"},
-                        color={"": "white"},
+                        bgcolor={"": theme.RED},
+                        color={"": theme.WHITE},
                         shape={"": ft.RoundedRectangleBorder(radius=10)},
                     ),
                     on_click=lambda e: remover_arquivo(caminho, dialogo),
@@ -120,24 +151,24 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
         try:
             os.remove(caminho)
             salvar_log("Arquivo removido", caminho, status="sucesso")
-            mostrar_snack("Arquivo removido.", "#2e7d32")
+            mostrar_snack("Arquivo removido.", theme.GREEN)
             if dialogo:
                 fechar_dialogo(dialogo)
             renderizar_explorador_callback()
         except Exception as ex:
             salvar_log("Erro ao remover arquivo", caminho, status="falha", erro=str(ex))
-            mostrar_snack(f"Erro ao remover: {ex}", "#c62828")
+            mostrar_snack(f"Erro ao remover: {ex}", theme.RED)
 
     def gerar_pdf_arquivo(caminho):
         try:
-            mostrar_snack("Gerando PDF...", "#4dabf7")
+            mostrar_snack("Gerando PDF...", theme.BLUE)
             if not caminho.lower().endswith((".doc", ".docx")):
-                mostrar_snack("PDF disponível apenas para DOC/DOCX.", "#c62828")
+                mostrar_snack("PDF disponível apenas para DOC/DOCX.", theme.RED)
                 return
 
             soffice = localizar_soffice()
             if not soffice:
-                mostrar_snack("LibreOffice não encontrado para gerar PDF.", "#c62828")
+                mostrar_snack("LibreOffice não encontrado para gerar PDF.", theme.RED)
                 return
 
             pasta_saida = os.path.dirname(caminho)
@@ -163,11 +194,11 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
             if not os.path.exists(caminho_pdf):
                 raise RuntimeError("PDF não foi criado pelo LibreOffice.")
             salvar_log("PDF gerado", caminho_pdf, status="sucesso", caminho_pdf=caminho_pdf)
-            mostrar_snack(f"PDF gerado: {caminho_pdf}", "#2e7d32")
+            mostrar_snack(f"PDF gerado: {caminho_pdf}", theme.GREEN)
             renderizar_explorador_callback()
         except Exception as ex:
             salvar_log("Erro ao gerar PDF", caminho, status="falha", erro=str(ex))
-            mostrar_snack(f"Erro ao gerar PDF: {ex}", "#c62828")
+            mostrar_snack(f"Erro ao gerar PDF: {ex}", theme.RED)
 
     def abrir_dialogo_assinatura(caminho):
         nome_input = ft.TextField(
@@ -194,7 +225,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
             page.update()
 
             def executar():
-                resultado = assinar_docx_autentique(
+                resultado = assinar_pdf_autentique(
                     caminho,
                     nome_input.value or "",
                     email_input.value or "",
@@ -211,9 +242,9 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                         "Documento enviado para assinatura",
                         caminho,
                         status="sucesso",
-                        caminho_docx=caminho,
+                        caminho_pdf=caminho,
                     )
-                    mostrar_snack(mensagem, "#2e7d32")
+                    mostrar_snack(mensagem, theme.GREEN)
                     fechar_dialogo(dialogo)
                     renderizar_explorador_callback()
                     return
@@ -227,7 +258,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                     status="falha",
                     erro=resultado.get("error") or resultado["message"],
                 )
-                mostrar_snack(resultado["message"], "#c62828")
+                mostrar_snack(resultado["message"], theme.RED)
                 page.update()
 
             page.run_thread(executar)
@@ -359,6 +390,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
         hint_style=ft.TextStyle(color=theme.TEXT_MUTED),
         border_radius=12,
         height=44,
+        width=360,
         on_submit=pesquisar_contratos,
     )
 
@@ -377,6 +409,31 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
         visible=bool(termo_pesquisa),
     )
 
+    filtros_assinatura = [
+        ("todos", "Todos"),
+        ("nao_assinado", "Não assinado"),
+        ("enviado", "Enviado"),
+        ("assinado", "Assinado"),
+        ("recusado", "Recusado"),
+        ("email_falhou", "E-mail falhou"),
+    ]
+
+    dropdown_filtro_tag = ft.Dropdown(
+        label="Tag",
+        value=filtro_tag,
+        width=220,
+        bgcolor=theme.BG_CARD,
+        border_color=theme.BORDER,
+        focused_border_color=theme.BLUE,
+        color=theme.TEXT_MAIN,
+        label_style=ft.TextStyle(color=theme.TEXT_MUTED),
+        options=[
+            ft.dropdown.Option(key=tag, text="Não assinado" if tag == "nao_assinado" else label)
+            for tag, label in filtros_assinatura
+        ],
+        on_select=lambda e: aplicar_filtro_tag(e.control.value or "todos"),
+    )
+
     btn_atualizar = ft.ElevatedButton(
         content=ft.Row(spacing=8, controls=[
             ft.Icon(ft.Icons.REFRESH_ROUNDED, color=theme.BLUE, size=18),
@@ -393,6 +450,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
 
     if termo_pesquisa:
         resultados = listar_resultados_pesquisa(termo_pesquisa)
+        resultados = [caminho for caminho in resultados if arquivo_passa_filtro_tag(caminho)]
         if resultados:
             for caminho_arq in resultados:
                 try:
@@ -417,8 +475,8 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                 alignment=ft.Alignment(0, 0), padding=40,
                 content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Icon(ft.Icons.SEARCH_OFF_ROUNDED, color="#555", size=48),
-                        ft.Text("Nenhum contrato encontrado.", color="#555", size=14),
+                        ft.Icon(ft.Icons.SEARCH_OFF_ROUNDED, color=theme.TEXT_MUTED, size=48),
+                        ft.Text("Nenhum contrato encontrado.", color=theme.TEXT_MUTED, size=14),
                     ])
             ))
 
@@ -509,6 +567,11 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                 arquivos = [a for a in arquivos if datetime.date.fromtimestamp(
                     os.path.getmtime(os.path.join(p_dia, a))) == data_fil]
 
+            arquivos = [
+                a for a in arquivos
+                if arquivo_passa_filtro_tag(os.path.join(p_dia, a))
+            ]
+
             if arquivos:
                 for arq in arquivos:
                     try:
@@ -532,8 +595,8 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
                     alignment=ft.Alignment(0, 0), padding=40,
                     content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         controls=[
-                            ft.Icon(ft.Icons.INBOX_ROUNDED, color="#555", size=48),
-                            ft.Text("Nenhum arquivo nesta pasta.", color="#555", size=14),
+                            ft.Icon(ft.Icons.INBOX_ROUNDED, color=theme.TEXT_MUTED, size=48),
+                            ft.Text("Nenhum arquivo nesta pasta.", color=theme.TEXT_MUTED, size=14),
                         ])
                 ))
 
@@ -548,7 +611,7 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
         style=ft.ButtonStyle(
             bgcolor={"": theme.BLUE},
             shape={"": ft.RoundedRectangleBorder(radius=12)},
-            side={"": ft.BorderSide(1, "#2d5c8c")},
+            side={"": ft.BorderSide(1, theme.BLUE)},
             padding={"": ft.Padding(left=14, right=14, top=10, bottom=10)},
         )
     )
@@ -564,9 +627,10 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
         ft.Row(
             spacing=10,
             controls=[
-                ft.Container(expand=True, content=campo_pesquisa),
+                campo_pesquisa,
                 btn_pesquisar,
                 btn_limpar_pesquisa,
+                dropdown_filtro_tag,
             ]
         ),
         ft.Container(height=6),

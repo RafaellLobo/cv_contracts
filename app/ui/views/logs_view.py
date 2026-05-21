@@ -45,9 +45,9 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
 
         badges = []
         if log.get("id_reserva"):
-            badges.append(criar_badge(f"Reserva #{log['id_reserva']}", "#4dabf7"))
+            badges.append(criar_badge(f"Reserva #{log['id_reserva']}", theme.BLUE))
         if log.get("modelo"):
-            badges.append(criar_badge(log["modelo"], "#a78bfa"))
+            badges.append(criar_badge(log["modelo"], theme.BLUE_DARK))
         if log.get("status"):
             cores_status = {"sucesso": theme.BLUE, "ignorado": theme.YELLOW,
                             "pendente": theme.BLUE_DARK, "falha": theme.RED}
@@ -56,7 +56,7 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
 
         detalhes = []
         if log.get("detalhe"):
-            detalhes.append(ft.Text(log["detalhe"][:80], color="#888", size=11))
+            detalhes.append(ft.Text(log["detalhe"][:80], color=theme.TEXT_MUTED, size=11))
         if log.get("caminho_pdf"):
             detalhes.append(ft.Row(spacing=4, controls=[
                 ft.Icon(ft.Icons.PICTURE_AS_PDF_ROUNDED, color=theme.BLUE, size=11),
@@ -69,8 +69,8 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
             ]))
         if log.get("erro"):
             detalhes.append(ft.Row(spacing=4, controls=[
-                ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color="#f87171", size=11),
-                ft.Text(log["erro"][:80], color="#f87171", size=10),
+                ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=theme.RED, size=11),
+                ft.Text(log["erro"][:80], color=theme.RED, size=10),
             ]))
 
         itens.append(
@@ -96,7 +96,7 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
                                             size=13, weight=ft.FontWeight.W_500),
                                     ft.Row(controls=badges, spacing=6) if badges else ft.Container(),
                                 ]),
-                                ft.Text(log.get("timestamp",""), color="#555", size=11),
+                                ft.Text(log.get("timestamp",""), color=theme.TEXT_DIM, size=11),
                             ]
                         ),
                         *detalhes,
@@ -110,8 +110,8 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
             alignment=ft.Alignment(0, 0), padding=40,
             content=ft.Column(horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    ft.Icon(ft.Icons.HISTORY_ROUNDED, color="#555", size=48),
-                    ft.Text("Nenhuma atividade registrada.", color="#555", size=14),
+                    ft.Icon(ft.Icons.HISTORY_ROUNDED, color=theme.TEXT_MUTED, size=48),
+                    ft.Text("Nenhuma atividade registrada.", color=theme.TEXT_MUTED, size=14),
                 ])
         ))
 

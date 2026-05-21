@@ -17,6 +17,7 @@ from app.ui.dialogs.new_contract_dialog import abrir_modal_novo_contrato as abri
 from app.ui.views.dashboard_view import renderizar_dashboard as renderizar_dashboard_view
 from app.ui.views.explorer_view import renderizar_explorador as renderizar_explorador_view
 from app.ui.views.logs_view import renderizar_logs as renderizar_logs_view
+from app.ui.views.signed_contracts_view import renderizar_assinados as renderizar_assinados_view
 
 
 def aplicar_icone_janela_windows(titulo="CV Contracts"):
@@ -83,9 +84,9 @@ def main(page: ft.Page):
     mes_calendario    = {"ano": hoje.year, "mes": hoje.month}
     nivel_atual       = {"nivel": "raiz", "ano": None, "mes": None, "dia": None}
 
-    def mostrar_snack(mensagem, cor="#4dabf7"):
+    def mostrar_snack(mensagem, cor=theme.BLUE):
         page.snack_bar = ft.SnackBar(
-            content=ft.Text(mensagem, color="white"),
+            content=ft.Text(mensagem, color=theme.WHITE),
             bgcolor=cor,
             duration=3000
         )
@@ -114,12 +115,12 @@ def main(page: ft.Page):
             caminho_pdf = resultado["path"]
             salvar_log("PDF gerado", caminho_pdf,
                        status="sucesso", caminho_pdf=caminho_pdf)
-            mostrar_snack(f"✓ PDF salvo em: {caminho_pdf}", "#2e7d32")
+            mostrar_snack(f"✓ PDF salvo em: {caminho_pdf}", theme.GREEN)
 
         except ImportError:
-            mostrar_snack("❌ Instale reportlab: pip install reportlab", "#c62828")
+            mostrar_snack("❌ Instale reportlab: pip install reportlab", theme.RED)
         except Exception as ex:
-            mostrar_snack(f"❌ Erro: {ex}", "#c62828")
+            mostrar_snack(f"❌ Erro: {ex}", theme.RED)
 
     def renderizar_dashboard():
         renderizar_dashboard_view(
@@ -159,9 +160,22 @@ def main(page: ft.Page):
             carregar_logs=carregar_logs,
         )
 
+    def renderizar_assinados():
+        renderizar_assinados_view(
+            page=page,
+            area_conteudo=area_conteudo,
+            titulo_pagina=titulo_pagina,
+            subtitulo=subtitulo,
+            renderizar_assinados_callback=renderizar_assinados,
+            mostrar_snack=mostrar_snack,
+            abrir_arquivo_sistema=abrir_arquivo_sistema,
+            salvar_log=salvar_log,
+        )
+
     def trocar_pagina(nome):
         if   nome == "Dashboard":  renderizar_dashboard()
         elif nome == "Explorador": renderizar_explorador()
+        elif nome == "Assinados":  renderizar_assinados()
         elif nome == "Logs":       renderizar_logs()
 
     calendario = create_calendar_controls(

@@ -74,7 +74,7 @@ def renderizar_dashboard(page, area_conteudo, titulo_pagina, subtitulo,
         )
 
     if not itens_log:
-        itens_log.append(ft.Text("Nenhuma atividade ainda.", color="#555", size=13))
+        itens_log.append(ft.Text("Nenhuma atividade ainda.", color=theme.TEXT_MUTED, size=13))
 
     area_conteudo.controls = [
         ft.Row(

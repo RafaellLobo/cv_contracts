@@ -2,32 +2,34 @@ import datetime
 
 import flet as ft
 
+from app.ui import theme
+
 
 def create_calendar_controls(page, hoje, data_selecionada, mes_calendario,
                              renderizar_explorador):
     badge_data = ft.Container(
         visible=False,
-        bgcolor="#1a3a5c",
+        bgcolor=theme.SOFT_BG,
         border_radius=20,
         padding=ft.Padding(left=12, right=12, top=6, bottom=6),
         content=ft.Row(
             spacing=6,
             controls=[
-                ft.Icon(ft.Icons.CALENDAR_TODAY, color="#4dabf7", size=14),
-                ft.Text("", color="#4dabf7", size=12, weight=ft.FontWeight.W_500),
+                ft.Icon(ft.Icons.CALENDAR_TODAY, color=theme.BLUE, size=14),
+                ft.Text("", color=theme.BLUE, size=12, weight=ft.FontWeight.W_500),
             ]
         )
     )
 
     calendario_container = ft.Container(
         visible=False,
-        bgcolor="#1e2023",
+        bgcolor=theme.BG_PANEL,
         border_radius=16,
         padding=20,
-        shadow=ft.BoxShadow(blur_radius=30, color="#00000066", offset=ft.Offset(0, 8)),
+        shadow=ft.BoxShadow(blur_radius=30, color=theme.SHADOW_SOFT, offset=ft.Offset(0, 8)),
         border=ft.Border(
-            top=ft.BorderSide(1, "#2d2f33"), bottom=ft.BorderSide(1, "#2d2f33"),
-            left=ft.BorderSide(1, "#2d2f33"), right=ft.BorderSide(1, "#2d2f33")
+            top=ft.BorderSide(1, theme.BORDER), bottom=ft.BorderSide(1, theme.BORDER),
+            left=ft.BorderSide(1, theme.BORDER), right=ft.BorderSide(1, theme.BORDER)
         ),
         width=300,
     )
@@ -60,7 +62,7 @@ def create_calendar_controls(page, hoje, data_selecionada, mes_calendario,
             spacing=2,
             controls=[
                 ft.Container(width=34, height=28, alignment=ft.Alignment(0,0),
-                    content=ft.Text(d, size=11, color="#B0B3B8", weight=ft.FontWeight.W_600))
+                    content=ft.Text(d, size=11, color=theme.TEXT_MUTED, weight=ft.FontWeight.W_600))
                 for d in ["S","T","Q","Q","S","S","D"]
             ]
         )
@@ -71,9 +73,11 @@ def create_calendar_controls(page, hoje, data_selecionada, mes_calendario,
 
         for dia in range(1, ultimo_dia.day + 1):
             data_dia = datetime.date(ano, mes, dia)
-            cor_bg = "#4dabf7" if data_dia == data_selecionada["data"] else (
-                     "#1a3a5c" if data_dia == hoje else "transparent")
-            cor_txt = "white" if (data_dia == data_selecionada["data"] or data_dia == hoje) else "#e0e0e0"
+            selecionado = data_dia == data_selecionada["data"]
+            cor_bg = theme.BLUE if selecionado else (
+                     theme.SOFT_BG if data_dia == hoje else "transparent")
+            cor_txt = theme.WHITE if selecionado else (
+                      theme.BLUE if data_dia == hoje else theme.TEXT_MAIN)
             peso = ft.FontWeight.BOLD if (data_dia == hoje or data_dia == data_selecionada["data"]) else ft.FontWeight.NORMAL
 
             semana.append(ft.Container(
@@ -97,28 +101,28 @@ def create_calendar_controls(page, hoje, data_selecionada, mes_calendario,
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        ft.IconButton(icon=ft.Icons.CHEVRON_LEFT_ROUNDED, icon_color="white",
+                        ft.IconButton(icon=ft.Icons.CHEVRON_LEFT_ROUNDED, icon_color=theme.BLUE,
                             icon_size=20, on_click=lambda e: navegar_mes(-1),
-                            style=ft.ButtonStyle(bgcolor={"": "#2d2f33"},
+                            style=ft.ButtonStyle(bgcolor={"": theme.SOFT_BG},
                                 shape={"": ft.RoundedRectangleBorder(radius=8)})),
-                        ft.Text(f"{nome_mes} {ano}", color="white", size=14, weight=ft.FontWeight.BOLD),
-                        ft.IconButton(icon=ft.Icons.CHEVRON_RIGHT_ROUNDED, icon_color="white",
+                        ft.Text(f"{nome_mes} {ano}", color=theme.TEXT_MAIN, size=14, weight=ft.FontWeight.BOLD),
+                        ft.IconButton(icon=ft.Icons.CHEVRON_RIGHT_ROUNDED, icon_color=theme.BLUE,
                             icon_size=20, on_click=lambda e: navegar_mes(1),
-                            style=ft.ButtonStyle(bgcolor={"": "#2d2f33"},
+                            style=ft.ButtonStyle(bgcolor={"": theme.SOFT_BG},
                                 shape={"": ft.RoundedRectangleBorder(radius=8)})),
                     ]
                 ),
                 cabecalho_dias,
-                ft.Divider(color="#2d2f33", height=1),
+                ft.Divider(color=theme.BORDER, height=1),
                 ft.Column(controls=semanas, spacing=2),
-                ft.Divider(color="#2d2f33", height=1),
+                ft.Divider(color=theme.BORDER, height=1),
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
                         ft.TextButton("Limpar", on_click=lambda e: limpar_data(),
-                            style=ft.ButtonStyle(color="#B0B3B8")),
+                            style=ft.ButtonStyle(color=theme.TEXT_MUTED)),
                         ft.TextButton("Hoje", on_click=lambda e: selecionar_data(hoje),
-                            style=ft.ButtonStyle(color="#4dabf7")),
+                            style=ft.ButtonStyle(color=theme.BLUE)),
                     ]
                 )
             ]

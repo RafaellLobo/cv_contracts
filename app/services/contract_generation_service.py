@@ -206,6 +206,9 @@ def _gerar_docx_por_template(template_path, output_path, variaveis):
 
 
 def _backend_path():
+    project_backend = Path(__file__).resolve().parents[2] / "backend"
+    if project_backend.exists():
+        return project_backend
     return Path(__file__).resolve().parents[3] / "backend"
 
 

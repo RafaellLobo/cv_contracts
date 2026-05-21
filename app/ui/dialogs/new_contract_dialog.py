@@ -44,7 +44,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
         title=ft.Row(spacing=10, controls=[
             ft.Container(
                 width=36, height=36,
-                bgcolor="#DBEAFE",
+                bgcolor=theme.SOFT_BG,
                 border_radius=8,
                 alignment=ft.Alignment(0, 0),
                 content=ft.Icon(ft.Icons.DESCRIPTION_ROUNDED, color=theme.BLUE, size=20)
@@ -81,7 +81,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
                 tight=True,
                 spacing=10,
                 controls=[
-                    ft.Text(mensagem, color="#34d399", size=13),
+                    ft.Text(mensagem, color=theme.GREEN, size=13),
                     ft.Text(caminho_docx or "", color=theme.TEXT_MUTED, size=12, selectable=True),
                 ],
             ),
@@ -114,7 +114,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
 
         if status == "pendente":
             status_control.value = f"Pendente: {message}"
-            status_control.color = "#f59e0b"
+            status_control.color = theme.YELLOW
             salvar_log("Geracao de contrato pendente",
                        id_reserva=reserva_id,
                        modelo=resultado.get("modelo"),
@@ -125,7 +125,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
                        erro=resultado.get("error"))
         elif resultado.get("success"):
             status_control.value = f"Sucesso: {message}"
-            status_control.color = "#34d399"
+            status_control.color = theme.GREEN
             salvar_log("Contrato gerado",
                        id_reserva=reserva_id,
                        modelo=resultado.get("modelo"),
@@ -136,7 +136,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
         else:
             erro_geracao = resultado.get("error") or message
             status_control.value = f"Erro: {message}"
-            status_control.color = "#f87171"
+            status_control.color = theme.RED
             salvar_log("Erro ao gerar contrato",
                        id_reserva=reserva_id,
                        modelo=resultado.get("modelo"),
@@ -225,7 +225,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
             loading_campos.visible = True
             btn_confirmar.disabled = True
             status_campos.value = "Gerando contrato..."
-            status_campos.color = "#B0B3B8"
+            status_campos.color = theme.TEXT_MUTED
             page.update()
 
             resultado = gerar_contrato_por_reserva(reserva_id, reserva_data, dados_contrato)
@@ -262,13 +262,13 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
         reserva_id = campo_id.value.strip()
         if erro:
             status_text.value = f"❌ {erro}"
-            status_text.color = "#f87171"
+            status_text.color = theme.RED
             salvar_log("Erro ao consultar reserva",
                        id_reserva=reserva_id,
                        status="falha", erro=erro)
         else:
             status_text.value = "✓ Reserva encontrada! Gerando contrato..."
-            status_text.color = "#34d399"
+            status_text.color = theme.GREEN
             salvar_log("Reserva consultada",
                        id_reserva=reserva_id,
                        status="sucesso",
@@ -279,7 +279,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
                 return
 
             status_text.value = f"Erro: {preparacao.get('message')}"
-            status_text.color = "#f87171"
+            status_text.color = theme.RED
             salvar_log("Erro ao preparar dados do contrato",
                        id_reserva=reserva_id,
                        status="falha",
@@ -293,18 +293,18 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
         reserva_id = campo_id.value.strip()
         if not reserva_id:
             status_text.value = "⚠ Informe o ID da reserva."
-            status_text.color = "#f59e0b"
+            status_text.color = theme.YELLOW
             page.update()
             return
         if not cv_email or not cv_token or not cv_base_url:
             status_text.value = "⚠ Configure o .env com CV_BASE_URL, CV_EMAIL e CV_TOKEN."
-            status_text.color = "#f59e0b"
+            status_text.color = theme.YELLOW
             page.update()
             return
         loading.visible = True
         btn_gerar.disabled = True
         status_text.value = "Consultando API..."
-        status_text.color = "#B0B3B8"
+        status_text.color = theme.TEXT_MUTED
         page.update()
         def callback_consulta(data, erro):
             page.run_task(on_resultado_async, data, erro)
