@@ -7,7 +7,7 @@ from app.services.autentique_service import (
     listar_contratos_assinados,
 )
 from app.ui import theme
-from app.ui.components.cards import criar_card_stat, criar_item_arquivo
+from app.ui.components.cards import criar_item_arquivo
 
 
 def renderizar_assinados(
@@ -128,14 +128,8 @@ def renderizar_assinados(
 
     area_conteudo.controls = [
         ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            alignment=ft.MainAxisAlignment.START,
             controls=[
-                ft.Row(
-                    spacing=14,
-                    controls=[
-                        criar_card_stat(ft.Icons.TASK_ALT_ROUNDED, theme.BLUE, len(contratos), "Assinados"),
-                    ],
-                ),
                 btn_atualizar,
             ],
         ),

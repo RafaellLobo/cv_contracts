@@ -53,7 +53,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
         ]),
         content=ft.Container(
             width=520,
-            content=ft.Column(spacing=14, controls=[
+            content=ft.Column(spacing=14, horizontal_alignment=ft.CrossAxisAlignment.STRETCH, controls=[
                 ft.Text("Informe o ID da reserva para consultar a API do CV CRM.",
                         color=theme.TEXT_MUTED, size=13),
                 campo_id,
@@ -166,7 +166,7 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
             )
             campos_inputs.append((campo, input_campo))
 
-        status_campos = ft.Text("", color=theme.TEXT_MUTED, size=12)
+        status_campos = ft.Text("", color=theme.TEXT_MUTED, size=12, expand=True)
         loading_campos = ft.ProgressRing(width=20, height=20, color=theme.BLUE, visible=False)
         btn_confirmar = ft.ElevatedButton(
             "Gerar Contrato",
@@ -192,15 +192,25 @@ def abrir_modal_novo_contrato(page, salvar_log, consultar_reserva,
                 height=560,
                 content=ft.Column(
                     spacing=12,
-                    scroll=ft.ScrollMode.AUTO,
+                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                     controls=[
-                        ft.Text("Revise os dados retornados pela API. Campos com borda amarela estão faltantes e podem ficar em branco.",
-                                color=theme.TEXT_MUTED, size=13),
-                        ft.Text("Nenhum dado faltante encontrado.",
-                                color=theme.TEXT_MUTED, size=13,
-                                visible=not campos_faltantes),
-                        *[input_campo for _, input_campo in campos_inputs],
                         ft.Row(spacing=10, controls=[loading_campos, status_campos]),
+                        ft.Container(
+                            expand=True,
+                            content=ft.Column(
+                                spacing=12,
+                                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                scroll=ft.ScrollMode.AUTO,
+                                controls=[
+                                    ft.Text("Revise os dados retornados pela API. Campos com borda amarela estão faltantes e podem ficar em branco.",
+                                            color=theme.TEXT_MUTED, size=13),
+                                    ft.Text("Nenhum dado faltante encontrado.",
+                                            color=theme.TEXT_MUTED, size=13,
+                                            visible=not campos_faltantes),
+                                    *[input_campo for _, input_campo in campos_inputs],
+                                ]
+                            )
+                        ),
                     ]
                 )
             ),

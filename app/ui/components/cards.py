@@ -12,12 +12,13 @@ def criar_card_stat(icone, cor, valor, label):
         bgcolor=theme.BG_CARD,
         border_radius=16,
         padding=24,
+        shadow=ft.BoxShadow(blur_radius=12, color=theme.SHADOW_SOFT, offset=ft.Offset(0, 4)),
         content=ft.Column(
             spacing=10,
             controls=[
                 ft.Container(
                     width=44, height=44,
-                    bgcolor=cor + "22",
+                    bgcolor=theme.ICON_BG,
                     border_radius=12,
                     alignment=ft.Alignment(0, 0),
                     content=ft.Icon(icone, color=cor, size=22)
@@ -36,10 +37,11 @@ def criar_item_pasta(nome, icone, cor, on_click_fn, subtexto=""):
         padding=10,
         ink=True,
         on_click=on_click_fn,
+        shadow=ft.BoxShadow(blur_radius=10, color=theme.SHADOW_SOFT, offset=ft.Offset(0, 3)),
         content=ft.ListTile(
             leading=ft.Container(
                 width=42, height=42,
-                bgcolor=cor + "22",
+                bgcolor=theme.ICON_BG,
                 border_radius=10,
                 alignment=ft.Alignment(0, 0),
                 content=ft.Icon(icone, color=cor, size=22)
@@ -57,6 +59,7 @@ def criar_item_voltar(fn):
         padding=4,
         ink=True,
         on_click=fn,
+        shadow=ft.BoxShadow(blur_radius=10, color=theme.SHADOW_SOFT, offset=ft.Offset(0, 3)),
         content=ft.ListTile(
             leading=ft.Icon(ft.Icons.ARROW_BACK_ROUNDED, color=theme.BLUE),
             title=ft.Text("Voltar", color=theme.TEXT_MAIN),
@@ -116,13 +119,14 @@ def criar_item_arquivo(
         bgcolor=theme.BG_CARD,
         border_radius=14,
         padding=10,
+        shadow=ft.BoxShadow(blur_radius=10, color=theme.SHADOW_SOFT, offset=ft.Offset(0, 3)),
         content=ft.Row(
             spacing=12,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Container(
                     width=42, height=42,
-                    bgcolor=cor + "22",
+                    bgcolor=theme.ICON_BG,
                     border_radius=10,
                     alignment=ft.Alignment(0, 0),
                     content=ft.Icon(icone, color=cor, size=22)

@@ -1,12 +1,40 @@
+import copy
 import re
 import sys
 import unicodedata
 import zipfile
 from datetime import datetime
 from pathlib import Path
+from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
 from app.core.paths import garantir_estrutura_hoje
+
+
+W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+XML_NS = "http://www.w3.org/XML/1998/namespace"
+
+ET.register_namespace("w", W_NS)
+
+
+TEMPLATE_MODELOS = {
+    "financiamento_comprador_unico": [
+        "contrato_financiamento_comprador_unico.docx",
+        "Desafio 1- financiamento - comprador unico.docx",
+    ],
+    "financiamento_compradores": [
+        "contrato_financiamento_compradores.docx",
+        "Desafio 1- financiamento - compradores.docx",
+    ],
+    "investimento_comprador_unico": [
+        "contrato_investimento_comprador_unico.docx",
+        "Desafio 1- Investimento - comprador unico.docx",
+    ],
+    "investimento_compradores": [
+        "contrato_investimento_compradores.docx",
+        "Desafio 1- Investimento - compradores.docx",
+    ],
+}
 
 
 def gerar_contrato_por_reserva(reserva_id: str, reserva_data: dict,
@@ -128,9 +156,10 @@ def _gerar_docx_contrato(reserva_id, reserva_data, modelo, dados_contrato=None):
     template_path = _template_por_modelo(modelo)
 
     if template_path is None:
+        pasta_templates = _backend_path() / "template_contrato"
         return {
             "success": False,
-            "message": f"Template não encontrado para o modelo {modelo}.",
+            "message": f"Template não encontrado para o modelo {modelo} em {pasta_templates}.",
             "caminho_docx": None,
             "error": "Template de contrato não disponível.",
         }
@@ -158,19 +187,17 @@ def _gerar_docx_contrato(reserva_id, reserva_data, modelo, dados_contrato=None):
 
 
 def _template_por_modelo(modelo):
-    templates = {
-        "financiamento_comprador_unico": "contrato_financiamento_comprador_unico.docx",
-        "investimento_comprador_unico": "contrato_financiamento_comprador_unico.docx",
-    }
-    nome_template = templates.get(modelo)
-    if not nome_template:
+    pasta_templates = _backend_path() / "template_contrato"
+    nomes_template = TEMPLATE_MODELOS.get(modelo)
+    if not nomes_template:
         return None
 
-    template_path = _backend_path() / "template_contrato" / nome_template
-    if not template_path.exists():
-        return None
+    for nome_template in nomes_template:
+        template_path = pasta_templates / nome_template
+        if template_path.exists():
+            return template_path
 
-    return template_path
+    return _buscar_template_por_nome_normalizado(pasta_templates, modelo)
 
 
 def _normalizar_dados_contrato(reserva_data):
@@ -197,12 +224,131 @@ def _gerar_docx_por_template(template_path, output_path, variaveis):
                 conteudo = origem.read(item.filename)
 
                 if item.filename.startswith("word/") and item.filename.endswith(".xml"):
-                    texto = conteudo.decode("utf-8")
-                    for marcador, valor in variaveis.items():
-                        texto = texto.replace(marcador, escape(str(valor)))
-                    conteudo = texto.encode("utf-8")
+                    conteudo = _substituir_variaveis_negrito_xml(conteudo, variaveis)
 
                 destino.writestr(item, conteudo)
+
+
+def _substituir_variaveis_negrito_xml(conteudo, variaveis):
+    try:
+        root = ET.fromstring(conteudo)
+    except ET.ParseError:
+        texto = conteudo.decode("utf-8")
+        for marcador, valor in variaveis.items():
+            texto = texto.replace(marcador, escape(str(valor)))
+        return texto.encode("utf-8")
+
+    pais_com_runs = [
+        elemento
+        for elemento in root.iter()
+        if any(filho.tag == _w("r") for filho in list(elemento))
+    ]
+
+    for pai in pais_com_runs:
+        filhos = list(pai)
+        novos_filhos = []
+        alterado = False
+
+        for filho in filhos:
+            if filho.tag != _w("r"):
+                novos_filhos.append(filho)
+                continue
+
+            runs = _substituir_run(filho, variaveis)
+            if runs is None:
+                novos_filhos.append(filho)
+                continue
+
+            novos_filhos.extend(runs)
+            alterado = True
+
+        if alterado:
+            pai[:] = novos_filhos
+
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
+def _substituir_run(run, variaveis):
+    texto_node = None
+    for filho in run:
+        if filho.tag == _w("rPr"):
+            continue
+        if filho.tag != _w("t") or texto_node is not None:
+            return None
+        texto_node = filho
+
+    if texto_node is None or not texto_node.text:
+        return None
+
+    partes = _segmentar_variaveis(texto_node.text, variaveis)
+    if len(partes) == 1 and not partes[0][1]:
+        return None
+
+    return [
+        _criar_run_texto(run, texto, negrito)
+        for texto, negrito in partes
+        if texto
+    ]
+
+
+def _segmentar_variaveis(texto, variaveis):
+    marcadores = sorted(variaveis.keys(), key=len, reverse=True)
+    partes = []
+    posicao = 0
+
+    while posicao < len(texto):
+        ocorrencias = [
+            (texto.find(marcador, posicao), marcador)
+            for marcador in marcadores
+            if texto.find(marcador, posicao) != -1
+        ]
+
+        if not ocorrencias:
+            partes.append((texto[posicao:], False))
+            break
+
+        indice, marcador = min(ocorrencias, key=lambda item: (item[0], -len(item[1])))
+        if indice > posicao:
+            partes.append((texto[posicao:indice], False))
+
+        partes.append((str(variaveis.get(marcador, "")), True))
+        posicao = indice + len(marcador)
+
+    return partes
+
+
+def _criar_run_texto(run_original, texto, negrito):
+    novo_run = ET.Element(_w("r"))
+    rpr = run_original.find(_w("rPr"))
+
+    if rpr is not None:
+        novo_run.append(copy.deepcopy(rpr))
+
+    if negrito:
+        _garantir_negrito(novo_run)
+
+    texto_node = ET.SubElement(novo_run, _w("t"))
+    if texto[:1].isspace() or texto[-1:].isspace():
+        texto_node.set(f"{{{XML_NS}}}space", "preserve")
+    texto_node.text = texto
+    return novo_run
+
+
+def _garantir_negrito(run):
+    rpr = run.find(_w("rPr"))
+    if rpr is None:
+        rpr = ET.Element(_w("rPr"))
+        run.insert(0, rpr)
+
+    for tag in ("b", "bCs"):
+        elemento = rpr.find(_w(tag))
+        if elemento is None:
+            elemento = ET.SubElement(rpr, _w(tag))
+        elemento.set(_w("val"), "1")
+
+
+def _w(tag):
+    return f"{{{W_NS}}}{tag}"
 
 
 def _backend_path():
@@ -265,16 +411,99 @@ def _identificar_tipo_contrato(tipovenda):
 
 
 def _identificar_tipo_comprador(reserva_data):
-    compradores = (
-        _buscar_valor(reserva_data, "compradores")
-        or _buscar_valor(reserva_data, "clientes")
-        or _buscar_valor(reserva_data, "cliente")
-    )
-
-    if isinstance(compradores, list) and len(compradores) > 1:
-        return "multiplos_compradores"
+    if _quantidade_compradores(reserva_data) > 1 or _quantidade_fiadores(reserva_data) > 1:
+        return "compradores"
 
     return "comprador_unico"
+
+
+def _quantidade_compradores(reserva_data):
+    proposta = _proposta_principal(reserva_data)
+    compradores = (
+        _buscar_valor(proposta, "compradores")
+        or _buscar_valor(proposta, "clientes")
+        or _buscar_valor(proposta, "cliente")
+    )
+
+    if isinstance(compradores, list):
+        return len([comprador for comprador in compradores if comprador]) or 1
+    if isinstance(compradores, dict):
+        return len([comprador for comprador in compradores.values() if comprador]) or 1
+
+    total = 1 if proposta.get("titular") else 0
+    for pessoa in _associados(proposta):
+        tipo = _normalizar_texto(pessoa.get("tipo", ""))
+        if any(termo in tipo for termo in ("comprador", "cliente", "adquirente")):
+            total += 1
+
+    return total or 1
+
+
+def _quantidade_fiadores(reserva_data):
+    proposta = _proposta_principal(reserva_data)
+    fiadores = _buscar_valor(proposta, "fiadores")
+
+    if isinstance(fiadores, list):
+        return len([fiador for fiador in fiadores if fiador])
+    if isinstance(fiadores, dict):
+        return len([fiador for fiador in fiadores.values() if fiador])
+
+    return sum(
+        1
+        for pessoa in _associados(proposta)
+        if "fiador" in _normalizar_texto(pessoa.get("tipo", ""))
+    )
+
+
+def _proposta_principal(dados):
+    if not isinstance(dados, dict):
+        return {}
+
+    if any(chave in dados for chave in ("titular", "associados", "condicoes", "tipovenda")):
+        return dados
+
+    primeira_chave = next(iter(dados), None)
+    if primeira_chave is None:
+        return {}
+
+    proposta = dados.get(primeira_chave)
+    return proposta if isinstance(proposta, dict) else {}
+
+
+def _associados(proposta):
+    associados = proposta.get("associados", {})
+    if isinstance(associados, dict):
+        return [pessoa for pessoa in associados.values() if isinstance(pessoa, dict)]
+    if isinstance(associados, list):
+        return [pessoa for pessoa in associados if isinstance(pessoa, dict)]
+    return []
+
+
+def _buscar_template_por_nome_normalizado(pasta_templates, modelo):
+    criterios = {
+        "financiamento_comprador_unico": ("financiamento", ("comprador", "unico")),
+        "financiamento_compradores": ("financiamento", ("compradores",)),
+        "investimento_comprador_unico": ("investimento", ("comprador", "unico")),
+        "investimento_compradores": ("investimento", ("compradores",)),
+    }
+    criterio = criterios.get(modelo)
+    if not criterio or not pasta_templates.exists():
+        return None
+
+    tipo_contrato, termos = criterio
+    for template_path in pasta_templates.glob("*.docx"):
+        nome = _normalizar_nome_template(template_path.stem)
+        if tipo_contrato in nome and all(termo in nome for termo in termos):
+            return template_path
+
+    return None
+
+
+def _normalizar_nome_template(nome):
+    texto = unicodedata.normalize("NFKD", str(nome))
+    texto = texto.encode("ascii", "ignore").decode("ascii")
+    texto = re.sub(r"[^a-zA-Z0-9]+", " ", texto).strip().lower()
+    return texto
 
 
 def _normalizar_texto(valor):
