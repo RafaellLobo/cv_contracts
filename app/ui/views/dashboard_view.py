@@ -2,6 +2,7 @@ import os
 
 import flet as ft
 
+from app.ui import theme
 from app.ui.components.cards import criar_card_stat
 
 
@@ -44,22 +45,28 @@ def renderizar_dashboard(page, area_conteudo, titulo_pagina, subtitulo,
     for log in logs:
         itens_log.append(
             ft.Container(
-                bgcolor="#1e1f21",
+                bgcolor=theme.BG_CARD,
                 border_radius=10,
                 padding=12,
+                border=ft.Border(
+                    top=ft.BorderSide(1, theme.BORDER),
+                    right=ft.BorderSide(1, theme.BORDER),
+                    bottom=ft.BorderSide(1, theme.BORDER),
+                    left=ft.BorderSide(1, theme.BORDER),
+                ),
                 content=ft.Row(
                     controls=[
-                        ft.Icon(ft.Icons.CIRCLE, color="#4dabf7", size=8),
+                        ft.Icon(ft.Icons.CIRCLE, color=theme.BLUE, size=8),
                         ft.Column(
                             spacing=2,
                             expand=True,
                             controls=[
-                                ft.Text(log.get("acao",""), color="white", size=13),
+                                ft.Text(log.get("acao",""), color=theme.TEXT_MAIN, size=13),
                                 ft.Text(log.get("detalhe","")[:60] if log.get("detalhe") else "",
-                                    color="#666", size=11),
+                                    color=theme.TEXT_MUTED, size=11),
                             ]
                         ),
-                        ft.Text(log.get("timestamp",""), color="#555", size=11),
+                        ft.Text(log.get("timestamp",""), color=theme.TEXT_DIM, size=11),
                     ],
                     spacing=12,
                 )
@@ -73,15 +80,15 @@ def renderizar_dashboard(page, area_conteudo, titulo_pagina, subtitulo,
         ft.Row(
             spacing=14,
             controls=[
-                criar_card_stat(ft.Icons.FOLDER_ROUNDED,           "#4dabf7", total_anos,     "Anos"),
-                criar_card_stat(ft.Icons.CALENDAR_MONTH_ROUNDED,   "#a78bfa", total_meses,    "Meses"),
-                criar_card_stat(ft.Icons.TODAY_ROUNDED,            "#34d399", total_dias,     "Dias"),
-                criar_card_stat(ft.Icons.DESCRIPTION_ROUNDED,      "#f59e0b", total_arquivos, "Contratos total"),
-                criar_card_stat(ft.Icons.STAR_ROUNDED,             "#fb7185", arquivos_hoje,  "Hoje"),
+                criar_card_stat(ft.Icons.FOLDER_ROUNDED,           theme.BLUE, total_anos,     "Anos"),
+                criar_card_stat(ft.Icons.CALENDAR_MONTH_ROUNDED,   theme.BLUE, total_meses,    "Meses"),
+                criar_card_stat(ft.Icons.TODAY_ROUNDED,            theme.BLUE, total_dias,     "Dias"),
+                criar_card_stat(ft.Icons.DESCRIPTION_ROUNDED,      theme.BLUE, total_arquivos, "Contratos total"),
+                criar_card_stat(ft.Icons.STAR_ROUNDED,             theme.BLUE, arquivos_hoje,  "Hoje"),
             ]
         ),
         ft.Container(height=10),
-        ft.Text("Atividade Recente", size=16, weight=ft.FontWeight.BOLD, color="white"),
+        ft.Text("Atividade Recente", size=16, weight=ft.FontWeight.BOLD, color=theme.TEXT_MAIN),
         ft.Container(height=4),
         ft.Column(controls=itens_log, spacing=6),
     ]

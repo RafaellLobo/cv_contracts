@@ -1,5 +1,6 @@
 import flet as ft
 
+from app.ui import theme
 from app.ui.components.cards import criar_badge
 
 
@@ -8,19 +9,21 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
     subtitulo.value = "Histórico de atividades"
 
     logs = carregar_logs()
+    limite = getattr(page, "_logs_limite", 20)
+    logs_visiveis = logs[:limite]
 
     def cor_status(log):
         s = log.get("status", "")
         e = log.get("erro", "")
-        if e:                    return "#f87171"   # vermelho — erro
-        if s == "sucesso":       return "#34d399"   # verde
-        if s == "ignorado":      return "#f59e0b"   # amarelo
-        if s == "pendente":      return "#a78bfa"   # roxo
+        if e:                    return theme.RED
+        if s == "sucesso":       return theme.BLUE
+        if s == "ignorado":      return theme.YELLOW
+        if s == "pendente":      return theme.BLUE_DARK
         acao = log.get("acao","")
-        if "PDF" in acao:        return "#34d399"
-        if "Explorador" in acao: return "#4dabf7"
-        if "App" in acao:        return "#a78bfa"
-        return "#B0B3B8"
+        if "PDF" in acao:        return theme.BLUE
+        if "Explorador" in acao: return theme.BLUE
+        if "App" in acao:        return theme.BLUE_DARK
+        return theme.TEXT_MUTED
 
     def icone_status(log):
         s = log.get("status", "")
@@ -36,7 +39,7 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
         return ft.Icons.CIRCLE
 
     itens = []
-    for log in logs:
+    for log in logs_visiveis:
         cor = cor_status(log)
         icone = icone_status(log)
 
@@ -46,23 +49,23 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
         if log.get("modelo"):
             badges.append(criar_badge(log["modelo"], "#a78bfa"))
         if log.get("status"):
-            cores_status = {"sucesso": "#34d399", "ignorado": "#f59e0b",
-                            "pendente": "#a78bfa", "falha": "#f87171"}
+            cores_status = {"sucesso": theme.BLUE, "ignorado": theme.YELLOW,
+                            "pendente": theme.BLUE_DARK, "falha": theme.RED}
             badges.append(criar_badge(log["status"].upper(),
-                                cores_status.get(log["status"], "#B0B3B8")))
+                                cores_status.get(log["status"], theme.TEXT_MUTED)))
 
         detalhes = []
         if log.get("detalhe"):
             detalhes.append(ft.Text(log["detalhe"][:80], color="#888", size=11))
         if log.get("caminho_pdf"):
             detalhes.append(ft.Row(spacing=4, controls=[
-                ft.Icon(ft.Icons.PICTURE_AS_PDF_ROUNDED, color="#e53935", size=11),
-                ft.Text(log["caminho_pdf"][:70], color="#666", size=10),
+                ft.Icon(ft.Icons.PICTURE_AS_PDF_ROUNDED, color=theme.BLUE, size=11),
+                ft.Text(log["caminho_pdf"][:70], color=theme.TEXT_MUTED, size=10),
             ]))
         if log.get("caminho_docx"):
             detalhes.append(ft.Row(spacing=4, controls=[
-                ft.Icon(ft.Icons.ARTICLE_ROUNDED, color="#1565c0", size=11),
-                ft.Text(log["caminho_docx"][:70], color="#666", size=10),
+                ft.Icon(ft.Icons.ARTICLE_ROUNDED, color=theme.BLUE, size=11),
+                ft.Text(log["caminho_docx"][:70], color=theme.TEXT_MUTED, size=10),
             ]))
         if log.get("erro"):
             detalhes.append(ft.Row(spacing=4, controls=[
@@ -72,7 +75,7 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
 
         itens.append(
             ft.Container(
-                bgcolor="#242526",
+                bgcolor=theme.BG_CARD,
                 border_radius=12,
                 padding=14,
                 content=ft.Column(
@@ -89,7 +92,7 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
                                     content=ft.Icon(icone, color=cor, size=18)
                                 ),
                                 ft.Column(spacing=2, expand=True, controls=[
-                                    ft.Text(log.get("acao",""), color="white",
+                                    ft.Text(log.get("acao",""), color=theme.TEXT_MAIN,
                                             size=13, weight=ft.FontWeight.W_500),
                                     ft.Row(controls=badges, spacing=6) if badges else ft.Container(),
                                 ]),
@@ -110,6 +113,27 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
                     ft.Icon(ft.Icons.HISTORY_ROUNDED, color="#555", size=48),
                     ft.Text("Nenhuma atividade registrada.", color="#555", size=14),
                 ])
+        ))
+
+    if len(logs) > limite:
+        def carregar_mais(e):
+            page._logs_limite = limite + 20
+            renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs)
+
+        itens.append(ft.Container(
+            alignment=ft.Alignment(0, 0),
+            padding=12,
+            content=ft.ElevatedButton(
+                "Exibir logs antigos",
+                icon=ft.Icons.EXPAND_MORE_ROUNDED,
+                on_click=carregar_mais,
+                style=ft.ButtonStyle(
+                    bgcolor={"": theme.BG_CARD},
+                    color={"": theme.TEXT_MAIN},
+                    shape={"": ft.RoundedRectangleBorder(radius=12)},
+                    side={"": ft.BorderSide(1, theme.BORDER)},
+                )
+            )
         ))
 
     area_conteudo.controls = [
