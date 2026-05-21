@@ -22,7 +22,7 @@ def criar_botao_calendario(on_click):
     return ft.ElevatedButton(
         content=ft.Row(spacing=8, controls=[
             ft.Icon(ft.Icons.CALENDAR_MONTH_ROUNDED, color=theme.BLUE, size=18),
-            ft.Text("Calendário", color=theme.WHITE, size=13),
+            ft.Text("Calendário", color=theme.TEXT_MAIN, size=13),
         ]),
         on_click=on_click,
         style=ft.ButtonStyle(

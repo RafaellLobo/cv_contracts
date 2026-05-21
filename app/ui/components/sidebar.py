@@ -11,7 +11,7 @@ def criar_item_sidebar(icone, texto, on_click):
         content=ft.Row(
             spacing=12,
             controls=[
-                ft.Icon(icone, color=theme.TEXT_MUTED, size=20),
+                ft.Icon(icone, color=theme.TEXT_LIGHT, size=20),
                 ft.Text(texto, color=theme.TEXT_LIGHT, size=14)
             ]
         )
@@ -34,10 +34,17 @@ def criar_sidebar(on_item_click):
             controls=[
                 ft.Container(
                     padding=ft.Padding(left=4, right=0, top=0, bottom=4),
-                    content=ft.Column(spacing=2, controls=[
-                        ft.Text("CV Contracts", size=22, weight=ft.FontWeight.BOLD, color=theme.WHITE),
-                        ft.Text("Automação Jurídica", color=theme.TEXT_DIM, size=12),
-                    ])
+                    content=ft.Row(
+                        spacing=10,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        controls=[
+                            ft.Image(src="logo_white.svg", width=42, height=42),
+                            ft.Column(spacing=2, controls=[
+                                ft.Text("CV Contracts", size=22, weight=ft.FontWeight.BOLD, color=theme.WHITE),
+                                ft.Text("Automação Jurídica", color=theme.TEXT_LIGHT, size=12),
+                            ]),
+                        ],
+                    )
                 ),
                 ft.Divider(color=theme.BORDER, height=20),
                 *[criar_item_sidebar(ic, txt, on_item_click) for ic, txt in itens_sidebar],

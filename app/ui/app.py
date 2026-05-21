@@ -1,4 +1,6 @@
 import datetime
+import os
+import threading
 
 import flet as ft
 
@@ -7,9 +9,8 @@ from app.core.paths import garantir_estrutura_hoje
 from app.repositories.log_repository import carregar_logs, salvar_log
 from app.services.cvcrm_client import consultar_reserva
 from app.services.file_service import abrir_arquivo_sistema, formatar_tamanho_legivel, listar_itens_visiveis
-from app.services.report_service import gerar_relatorio_pdf_do_dia
 from app.ui import theme
-from app.ui.components.buttons import criar_botao_calendario, criar_botao_novo_contrato, criar_botao_pdf
+from app.ui.components.buttons import criar_botao_calendario, criar_botao_novo_contrato
 from app.ui.components.calendar import create_calendar_controls
 from app.ui.components.sidebar import criar_sidebar
 from app.ui.dialogs.new_contract_dialog import abrir_modal_novo_contrato as abrir_modal_novo_contrato_dialog
@@ -18,12 +19,59 @@ from app.ui.views.explorer_view import renderizar_explorador as renderizar_explo
 from app.ui.views.logs_view import renderizar_logs as renderizar_logs_view
 
 
+def aplicar_icone_janela_windows(titulo="CV Contracts"):
+    if os.name != "nt":
+        return
+
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    caminho_icone = os.path.join(base_dir, "assets", "app_icon.ico")
+    if not os.path.exists(caminho_icone):
+        return
+
+    def aplicar():
+        try:
+            import ctypes
+            import win32api
+            import win32con
+            import win32gui
+
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("cv_contracts.app")
+            hwnd = win32gui.FindWindow(None, titulo)
+            if not hwnd:
+                encontrados = []
+
+                def localizar(handle, _):
+                    if titulo in win32gui.GetWindowText(handle):
+                        encontrados.append(handle)
+
+                win32gui.EnumWindows(localizar, None)
+                hwnd = encontrados[0] if encontrados else None
+            if not hwnd:
+                return
+
+            hicon = win32gui.LoadImage(
+                None,
+                caminho_icone,
+                win32con.IMAGE_ICON,
+                0,
+                0,
+                win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE,
+            )
+            win32api.SendMessage(hwnd, win32con.WM_SETICON, win32con.ICON_SMALL, hicon)
+            win32api.SendMessage(hwnd, win32con.WM_SETICON, win32con.ICON_BIG, hicon)
+        except Exception:
+            return
+
+    threading.Timer(1.0, aplicar).start()
+
+
 def main(page: ft.Page):
 
     page.title        = "CV Contracts"
+    aplicar_icone_janela_windows(page.title)
     page.window_width  = 1400
     page.window_height = 800
-    page.theme_mode   = ft.ThemeMode.DARK
+    page.theme_mode   = ft.ThemeMode.LIGHT
     page.padding      = 0
     page.bgcolor      = theme.BG_MAIN
 
@@ -55,8 +103,8 @@ def main(page: ft.Page):
             e=e,
         )
 
-    titulo_pagina = ft.Text("Contratos", size=26, weight=ft.FontWeight.BOLD, color="white")
-    subtitulo     = ft.Text("Visão geral do sistema", color="#B0B3B8", size=13)
+    titulo_pagina = ft.Text("Contratos", size=32, weight=ft.FontWeight.BOLD, color=theme.TEXT_MAIN)
+    subtitulo     = ft.Text("Visão geral do sistema", color=theme.TEXT_MUTED, size=13)
 
     area_conteudo = ft.Column(expand=True, spacing=0)
 
@@ -131,7 +179,6 @@ def main(page: ft.Page):
     sidebar = criar_sidebar(trocar_pagina)
     btn_novo_contrato = criar_botao_novo_contrato(abrir_modal_novo_contrato)
     btn_calendario = criar_botao_calendario(abrir_calendario)
-    btn_pdf = criar_botao_pdf(gerar_pdf_do_dia)
 
     conteudo = ft.Container(
         expand=True,
@@ -143,11 +190,18 @@ def main(page: ft.Page):
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.START,
                     controls=[
-                        ft.Column(spacing=2, controls=[titulo_pagina, subtitulo]),
-                        ft.Row(spacing=10, controls=[badge_data, btn_calendario, btn_pdf, btn_novo_contrato])
+                        ft.Row(
+                            spacing=12,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            controls=[
+                                ft.Image(src="logo.svg", width=42, height=42),
+                                ft.Column(spacing=2, controls=[titulo_pagina, subtitulo]),
+                            ],
+                        ),
+                        ft.Row(spacing=10, controls=[badge_data, btn_calendario, btn_novo_contrato])
                     ]
                 ),
-                ft.Divider(color="#2d2f33", height=1),
+                ft.Divider(color=theme.BORDER, height=1),
                 ft.Container(expand=True, content=area_conteudo),
             ]
         )
