@@ -17,26 +17,6 @@ XML_NS = "http://www.w3.org/XML/1998/namespace"
 ET.register_namespace("w", W_NS)
 
 
-TEMPLATE_MODELOS = {
-    "financiamento_comprador_unico": [
-        "contrato_financiamento_comprador_unico.docx",
-        "Desafio 1- financiamento - comprador unico.docx",
-    ],
-    "financiamento_compradores": [
-        "contrato_financiamento_compradores.docx",
-        "Desafio 1- financiamento - compradores.docx",
-    ],
-    "investimento_comprador_unico": [
-        "contrato_investimento_comprador_unico.docx",
-        "Desafio 1- Investimento - comprador unico.docx",
-    ],
-    "investimento_compradores": [
-        "contrato_investimento_compradores.docx",
-        "Desafio 1- Investimento - compradores.docx",
-    ],
-}
-
-
 def gerar_contrato_por_reserva(reserva_id: str, reserva_data: dict,
                                dados_contrato: dict | None = None) -> dict:
     try:
@@ -60,10 +40,7 @@ def gerar_contrato_por_reserva(reserva_id: str, reserva_data: dict,
                 error="JSON da reserva vazio ou inválido.",
             )
 
-        tipovenda = _buscar_valor(reserva_data, "tipovenda")
-        tipo_contrato = _identificar_tipo_contrato(tipovenda)
-        tipo_comprador = _identificar_tipo_comprador(reserva_data)
-        modelo = f"{tipo_contrato}_{tipo_comprador}"
+        modelo = "financiamento_comprador_unico"
 
         geracao = _gerar_docx_contrato(reserva_id, reserva_data, modelo, dados_contrato)
         if not geracao["success"]:
@@ -188,16 +165,8 @@ def _gerar_docx_contrato(reserva_id, reserva_data, modelo, dados_contrato=None):
 
 def _template_por_modelo(modelo):
     pasta_templates = _backend_path() / "template_contrato"
-    nomes_template = TEMPLATE_MODELOS.get(modelo)
-    if not nomes_template:
-        return None
-
-    for nome_template in nomes_template:
-        template_path = pasta_templates / nome_template
-        if template_path.exists():
-            return template_path
-
-    return _buscar_template_por_nome_normalizado(pasta_templates, modelo)
+    template_path = pasta_templates / "contrato_financiamento_comprador_unico.docx"
+    return template_path if template_path.exists() else None
 
 
 def _normalizar_dados_contrato(reserva_data):
@@ -377,133 +346,6 @@ def _label_campo(marcador):
 def _valor_pendente(valor):
     texto = _normalizar_texto(valor)
     return "nao informado" in texto or "não informado" in texto
-
-
-def _buscar_valor(data, chave):
-    if isinstance(data, dict):
-        for key, value in data.items():
-            if str(key).lower() == chave.lower():
-                return value
-            if isinstance(value, (dict, list)):
-                encontrado = _buscar_valor(value, chave)
-                if encontrado is not None:
-                    return encontrado
-
-    if isinstance(data, list):
-        for item in data:
-            encontrado = _buscar_valor(item, chave)
-            if encontrado is not None:
-                return encontrado
-
-    return None
-
-
-def _identificar_tipo_contrato(tipovenda):
-    valor = _normalizar_texto(tipovenda)
-
-    if "financi" in valor:
-        return "financiamento"
-
-    if "invest" in valor:
-        return "investimento"
-
-    return "investimento"
-
-
-def _identificar_tipo_comprador(reserva_data):
-    if _quantidade_compradores(reserva_data) > 1 or _quantidade_fiadores(reserva_data) > 1:
-        return "compradores"
-
-    return "comprador_unico"
-
-
-def _quantidade_compradores(reserva_data):
-    proposta = _proposta_principal(reserva_data)
-    compradores = (
-        _buscar_valor(proposta, "compradores")
-        or _buscar_valor(proposta, "clientes")
-        or _buscar_valor(proposta, "cliente")
-    )
-
-    if isinstance(compradores, list):
-        return len([comprador for comprador in compradores if comprador]) or 1
-    if isinstance(compradores, dict):
-        return len([comprador for comprador in compradores.values() if comprador]) or 1
-
-    total = 1 if proposta.get("titular") else 0
-    for pessoa in _associados(proposta):
-        tipo = _normalizar_texto(pessoa.get("tipo", ""))
-        if any(termo in tipo for termo in ("comprador", "cliente", "adquirente")):
-            total += 1
-
-    return total or 1
-
-
-def _quantidade_fiadores(reserva_data):
-    proposta = _proposta_principal(reserva_data)
-    fiadores = _buscar_valor(proposta, "fiadores")
-
-    if isinstance(fiadores, list):
-        return len([fiador for fiador in fiadores if fiador])
-    if isinstance(fiadores, dict):
-        return len([fiador for fiador in fiadores.values() if fiador])
-
-    return sum(
-        1
-        for pessoa in _associados(proposta)
-        if "fiador" in _normalizar_texto(pessoa.get("tipo", ""))
-    )
-
-
-def _proposta_principal(dados):
-    if not isinstance(dados, dict):
-        return {}
-
-    if any(chave in dados for chave in ("titular", "associados", "condicoes", "tipovenda")):
-        return dados
-
-    primeira_chave = next(iter(dados), None)
-    if primeira_chave is None:
-        return {}
-
-    proposta = dados.get(primeira_chave)
-    return proposta if isinstance(proposta, dict) else {}
-
-
-def _associados(proposta):
-    associados = proposta.get("associados", {})
-    if isinstance(associados, dict):
-        return [pessoa for pessoa in associados.values() if isinstance(pessoa, dict)]
-    if isinstance(associados, list):
-        return [pessoa for pessoa in associados if isinstance(pessoa, dict)]
-    return []
-
-
-def _buscar_template_por_nome_normalizado(pasta_templates, modelo):
-    criterios = {
-        "financiamento_comprador_unico": ("financiamento", ("comprador", "unico")),
-        "financiamento_compradores": ("financiamento", ("compradores",)),
-        "investimento_comprador_unico": ("investimento", ("comprador", "unico")),
-        "investimento_compradores": ("investimento", ("compradores",)),
-    }
-    criterio = criterios.get(modelo)
-    if not criterio or not pasta_templates.exists():
-        return None
-
-    tipo_contrato, termos = criterio
-    for template_path in pasta_templates.glob("*.docx"):
-        nome = _normalizar_nome_template(template_path.stem)
-        if tipo_contrato in nome and all(termo in nome for termo in termos):
-            return template_path
-
-    return None
-
-
-def _normalizar_nome_template(nome):
-    texto = unicodedata.normalize("NFKD", str(nome))
-    texto = texto.encode("ascii", "ignore").decode("ascii")
-    texto = re.sub(r"[^a-zA-Z0-9]+", " ", texto).strip().lower()
-    return texto
 
 
 def _normalizar_texto(valor):

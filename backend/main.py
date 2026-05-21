@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 
 if __package__:
-    from .contrato_pdf import gerar_contrato_html
+    from .contrato_pdf import gerar_contrato
     from .cvcrm_client import CVCRMClient
     from .normalizar_dados import normalizar_dados_cvcrm
 else:
-    from contrato_pdf import gerar_contrato_html
+    from contrato_pdf import gerar_contrato
     from cvcrm_client import CVCRMClient
     from normalizar_dados import normalizar_dados_cvcrm
 
@@ -24,7 +24,7 @@ def main():
 
     dados_contrato = normalizar_dados_cvcrm(resposta_api)
 
-    gerar_contrato_html(
+    gerar_contrato(
         dados=dados_contrato,
         output_path=BASE_DIR / "output" / f"contrato_reserva_{reserva_id}.pdf"
     )
