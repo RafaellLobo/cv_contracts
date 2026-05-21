@@ -602,26 +602,12 @@ def renderizar_explorador(page, area_conteudo, titulo_pagina, subtitulo,
 
     salvar_log("Explorador", f"Nível: {nivel}")
 
-    btn_importar = ft.ElevatedButton(
-        content=ft.Row(spacing=8, controls=[
-            ft.Icon(ft.Icons.UPLOAD_FILE_ROUNDED, color=theme.WHITE, size=18),
-            ft.Text("Importar arquivo", color="white", size=13),
-        ]),
-        on_click=importar_arquivo,
-        style=ft.ButtonStyle(
-            bgcolor={"": theme.BLUE},
-            shape={"": ft.RoundedRectangleBorder(radius=12)},
-            side={"": ft.BorderSide(1, theme.BLUE)},
-            padding={"": ft.Padding(left=14, right=14, top=10, bottom=10)},
-        )
-    )
-
     area_conteudo.controls = [
         ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
                 breadcrumb,
-                ft.Row(spacing=10, controls=[btn_atualizar, btn_importar]),
+                ft.Row(spacing=10, controls=[btn_atualizar]),
             ]
         ),
         ft.Row(

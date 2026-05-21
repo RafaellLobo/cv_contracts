@@ -86,7 +86,7 @@ def renderizar_logs(page, area_conteudo, titulo_pagina, subtitulo, carregar_logs
                             controls=[
                                 ft.Container(
                                     width=36, height=36,
-                                    bgcolor=cor + "22",
+                                    bgcolor=theme.ICON_BG,
                                     border_radius=8,
                                     alignment=ft.Alignment(0, 0),
                                     content=ft.Icon(icone, color=cor, size=18)

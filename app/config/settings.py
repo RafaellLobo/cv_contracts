@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 
 
-load_dotenv()
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+load_dotenv(os.path.join(BASE_DIR, ".env"), encoding="utf-8-sig")
 
 CV_BASE_URL = os.getenv("CV_BASE_URL", "")
 CV_EMAIL = os.getenv("CV_EMAIL", "")
