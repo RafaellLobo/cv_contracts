@@ -22,7 +22,3 @@ def listar_itens_visiveis(pasta):
     if not os.path.exists(pasta):
         return []
     return sorted([item for item in os.listdir(pasta) if not item.startswith('.')])
-
-
-def contar_itens_visiveis(pasta):
-    return len(listar_itens_visiveis(pasta))
